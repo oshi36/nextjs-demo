@@ -2,8 +2,7 @@ name: example - next.js
 on:
   push:
     branches:
-      - master
-      - feature/*
+      - main
   pull_request_target:
 
 jobs:
@@ -14,7 +13,7 @@ jobs:
       - run: |
           npm ci
           npx vercel pull --yes --token=${VERCEL_TOKEN}
-        working-directory: example/nextjs
+        working-directory: /
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -22,23 +21,11 @@ jobs:
       - run: |
           npx vercel build
         if: github.event_name == 'pull_request_target'
-        working-directory: example/nextjs
+        working-directory: /
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      - uses: ./
-        id: now-deployment-staging
-        if: github.event_name == 'pull_request_target'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
-          vercel-args: --prebuilt
-          working-directory: example/nextjs
-          alias-domains: |
-            staging.nextjs.vercel-action.amond.dev
-            pr-{{PR_NUMBER}}.nextjs.vercel-action.amond.dev
+    
       - name: production or not
         id: prod_or_not
         run: |
@@ -53,7 +40,7 @@ jobs:
       - run: |
           npx vercel build --prod
         if: github.event_name == 'push'
-        working-directory: example/nextjs
+        working-directory: /
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -66,6 +53,5 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
           vercel-args: ${{ steps.prod_or_not.outputs.vercel-args }}
-          working-directory: example/nextjs
-          alias-domains: |
-            {{BRANCH}}.nextjs.vercel-action.amond.dev
+          working-directory: /
+       
