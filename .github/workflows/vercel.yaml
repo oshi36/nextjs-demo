@@ -1,18 +1,56 @@
-name: deploy website
-on: [push]
+name: example - next.js
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+
 jobs:
-  deploy:
+  static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      #  your build commands
-      # - run: |
-      #    ng build --prod
-      - uses: amondnet/vercel-action@v20 #deploy
+      - run: |
+          npm ci
+          npx vercel pull --yes --token=${VERCEL_TOKEN}
+        working-directory: /
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: |
+          npx vercel build
+        if: github.event_name == 'pull_request_target'
+        working-directory: /
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID}}
+          VERCEL_ORG_ID: ${{ secrets.ORG_ID }}
+    
+      - name: production or not
+        id: prod_or_not
+        run: |
+          if [ "$REF" == 'refs/heads/master' ]
+          then
+              echo "vercel-args=--prod --prebuilt" >> $GITHUB_OUTPUT
+          else
+              echo "vercel-args=--prebuilt" >> $GITHUB_OUTPUT
+          fi
+        env:
+          REF: ${{ github.ref }}
+      - run: |
+          npx vercel build --prod
+        if: github.event_name == 'push'
+        working-directory: /
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.ORG_ID }}
+      - uses: ./
+        id: now-deployment-production
+        if: github.event_name == 'push'
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }} # Required
-          github-token: ${{ secrets.GITHUB_TOKEN }} #Optional 
-          vercel-args: '--prod' #Optional
-          vercel-org-id: ${{ secrets.ORG_ID}}  #Required
-          vercel-project-id: ${{ secrets.PROJECT_ID}} #Required 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID}}
+          vercel-args: ${{ steps.prod_or_not.outputs.vercel-args }}
           working-directory: /
